@@ -1,1 +1,1 @@
-gb_go_lvl2
+Go. Level 2.
