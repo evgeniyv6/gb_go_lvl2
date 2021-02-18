@@ -2,7 +2,6 @@ package client
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -43,8 +42,7 @@ func PostJson(client *http.Client, url,body string) (err error) {
 			err = fmt.Errorf("%w: %s", UnknownErr, v)
 		}
 	}()
-
-	err = json.Unmarshal([]byte(body),&ijson)
+	
 	fmt.Println("Unmarshal!!!!", ijson)
 	if isPanic {
 		panic("Wrong json decode")
