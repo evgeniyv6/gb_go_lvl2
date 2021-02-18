@@ -42,7 +42,7 @@ func PostJson(client *http.Client, url,body string) (err error) {
 			err = fmt.Errorf("%w: %s", UnknownErr, v)
 		}
 	}()
-	
+
 	fmt.Println("Unmarshal!!!!", ijson)
 	if isPanic {
 		panic("Wrong json decode")

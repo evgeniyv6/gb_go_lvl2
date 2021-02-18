@@ -70,23 +70,22 @@ func example3() {
 
 // example4
 func example4() {
-	//panic(errors.New("some panic err"))
 	bar()
-	fmt.Println("After FOO")
+	fmt.Println("After bar")
 }
 
 func bar() {
-	defer func() {
-		if v:=recover(); v !=nil {
-			fmt.Println(v)
-		}
-	}()
-
 	go func() {
-		var a int
-		fmt.Println(1/a)
+		defer func() {
+			if r := recover(); r != nil {
+				fmt.Println("Catch the panic", r)
+			}
+		}()
+		devider(1,0)
 	}()
-
 	time.Sleep(3*time.Second)
+}
 
+func devider(a,b int) {
+	fmt.Println(a / b)
 }
