@@ -1,0 +1,9 @@
+/**/.idea/
+gb_go_lvl2/**/.idea/
+gb_go_lvl2/.DS_Store
+.DS_Store
+gb_go_lvl2/**/pkg/
+gb_go_lvl2/**/bin/
+.idea
+go.mod
+go.sum
