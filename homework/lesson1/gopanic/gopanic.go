@@ -1,3 +1,10 @@
+// Package errors implements functions to demonstrate godoc features
+//
+// The MyFunction returns some string
+//
+// MyFunction () string
+//
+// So, you are allowed to call this function and get some string
 package gopanic
 
 import (
@@ -34,8 +41,9 @@ func New(msg string) error {
 	return &ErrWithTimestamp{msg, time.Now().Format(time.RFC1123)}
 }
 
-func devider(a,b int) {
+func Devider(a,b int) string {
 	fmt.Println(a / b)
+	return "doc test"
 }
 
 // GoroutinePanicCatcher description (for linter)
