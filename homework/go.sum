@@ -1,0 +1,10 @@
+github.com/evgeniyv6/gbyevgenpkg v1.0.0 h1:VKHs+5eRJNoXdaDzdA9fVeOUvoC2wuZ4dCppQ+UDKl0=
+github.com/evgeniyv6/gbyevgenpkg v1.0.0/go.mod h1:BR5M8eLXXKmREeSA/OoQorhIaNA62uHgYbhhJY7yWcI=
+github.com/evgeniyv6/gbyevgenpkg v1.0.1 h1:fN8DSvESg4dSFYD+nORqDh8tctmddNImC2776Jm48wc=
+github.com/evgeniyv6/gbyevgenpkg v1.0.1/go.mod h1:BR5M8eLXXKmREeSA/OoQorhIaNA62uHgYbhhJY7yWcI=
+github.com/evgeniyv6/gbyevgenpkg/v2 v2.0.0 h1:Iz3thMy3V/HRaMD3g6ly/YXFWkfAFnayfFQPdeo9c3A=
+github.com/evgeniyv6/gbyevgenpkg/v2 v2.0.0/go.mod h1:Pr1AN/xtnjEfLSoqvXMv1co9mV2hTt3a5CYO9roa0mU=
+github.com/evgeniyv6/gbyevgenpkg/v2 v2.0.1 h1:Sf5BMWdrUTmdf9l0KSb4M9J//0gTOcSDEJ10Z0eAGwI=
+github.com/evgeniyv6/gbyevgenpkg/v2 v2.0.1/go.mod h1:5T80h2vI/USPh+Joc0ay9kQUAOs2iijqGs9Z2y2FvOk=
+github.com/jcmturner/gokrb5 v8.4.2+incompatible h1:MQW70Fbazv31g6URAXCjO2bGenIL0wVt3wqcpc0EjHI=
+github.com/jcmturner/gokrb5 v8.4.2+incompatible/go.mod h1:0Q5eFyVvYsEsZ8xl1A/jUqhXvxUp/X9ELrJm+zieq5E=
