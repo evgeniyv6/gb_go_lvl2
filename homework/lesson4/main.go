@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	count = 1000
+	count                 = 1000
 	timeout time.Duration = 2
 )
 
@@ -21,20 +21,26 @@ func main() {
 func sigtermExtTimeout() {
 	var (
 		ctx, cancel = context.WithCancel(context.Background())
-		cancelSig = make(chan os.Signal)
-		workers = make(chan struct{})
-		done = make(chan bool,1)
+		cancelSig   = make(chan os.Signal)
+		workers     = make(chan struct{})
+		done        = make(chan bool, 1)
 
-		doWork = func(num int) {
+		doWork = func(ctx context.Context,num int) {
 			for i := 0; i < num; i++ {
-				workers <- struct{}{}
-				time.Sleep(1 * time.Second)
+				select {
+				case <-ctx.Done():
+					time.Sleep(timeout*time.Second)
+					fmt.Println("Stop workers")
+					return
+				case workers <- struct{}{}:
+					time.Sleep(1 * time.Second)
+				}
 			}
 		}
 
 		getWork = func() {
 			for {
-				fmt.Println("get from worker", <- workers)
+				fmt.Println("get from worker", <-workers)
 			}
 		}
 
@@ -48,13 +54,13 @@ func sigtermExtTimeout() {
 
 	signal.Notify(cancelSig, syscall.SIGTERM, syscall.SIGINT)
 
-	go doWork(100)
+	go doWork(ctx,100)
 	go getWork()
 	go catchSIG(cancel)
 
 	select {
 	case <-ctx.Done():
-		time.Sleep(timeout*time.Second)
+		time.Sleep(2*timeout * time.Second)
 		fmt.Println("Completed.", <-done)
 		return
 	}
@@ -63,11 +69,11 @@ func sigtermExtTimeout() {
 
 func kiloGoroutins(count int) int {
 	var counter int
-	var workers = make (chan struct {}, 1)
-	for i := 0 ; i < count ; i++ {
+	var workers = make(chan struct{}, 1)
+	for i := 0; i < count; i++ {
 		workers <- struct{}{}
-		go func (){
-			defer func () {
+		go func() {
+			defer func() {
 				<-workers
 				counter++
 			}()
