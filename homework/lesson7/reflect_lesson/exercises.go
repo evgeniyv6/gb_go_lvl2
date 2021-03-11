@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"runtime"
 )
 
 func main() {
+	fmt.Println(runtime.NumCPU())
 	v:= struct {
 		FString string `json:"f_string"`
 		FInt int

@@ -32,6 +32,7 @@ func (h *Man) String() string  {
 
 func main() {
 	fmt.Println(" hi from l7")
+
 	h:= Man{"Salut", 10,}
 	s:=Speaker(&h)
 
@@ -63,4 +64,6 @@ func ToString(in interface{}) string {
 	default:
 		return "???"
 	}
+
 }
+
