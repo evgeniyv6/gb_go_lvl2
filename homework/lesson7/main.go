@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"gb_go_lvl2/homework/lesson7/stringer"
 	"strconv"
 )
 
@@ -30,7 +31,7 @@ func (h *Man) String() string  {
 	return fmt.Sprintf("Greet %s %d", h.Greeting, h.Meters)
 }
 
-func main() {
+func mainCHANGETOMAINONLY2() {
 	fmt.Println(" hi from l7")
 
 	h:= Man{"Salut", 10,}
@@ -50,6 +51,12 @@ func main() {
 	fmt.Println(ToString("22"))
 	fmt.Println(ToString(h))
 	fmt.Println(ToString(3.12))
+
+	fmt.Println(stringer.Ibuprofen)
+	fmt.Println(stringer.Main)
+	fmt.Println(stringer.ArtistASOT)
+
+
 
 }
 
