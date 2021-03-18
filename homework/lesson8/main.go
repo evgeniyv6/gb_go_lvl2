@@ -1,12 +1,7 @@
 package main
 
-import (
-	"bytes"
-	"fmt"
-	"io"
-)
-
 func main() {
+	// lesson --
 	//var (
 	//	r io.Reader = strings.NewReader("Hello lesson 8")
 	//)
@@ -15,16 +10,18 @@ func main() {
 	//	panic(err)
 	//}
 
-	r, w := io.Pipe()
-	go func() {
-		_,_ = fmt.Fprintln(w, "some data")
-		w.Close()
-	}()
+	//r, w := io.Pipe()
+	//go func() {
+	//	_,_ = fmt.Fprintln(w, "some data")
+	//	w.Close()
+	//}()
+	//
+	//buf:=new(bytes.Buffer)
+	//_, err:=buf.ReadFrom(r)
+	//if err!= nil {
+	//
+	//}
+	//_,_ = fmt.Println(buf)
 
-	buf:=new(bytes.Buffer)
-	_, err:=buf.ReadFrom(r)
-	if err!= nil {
-
-	}
-	_,_ = fmt.Println(buf)
+	// -- lesson
 }

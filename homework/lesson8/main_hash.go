@@ -17,7 +17,7 @@ func main() {
 		panic(err)
 	}
 
-	_, err = h2.Write([]byte("test2"))
+	_, err = h2.Write([]byte("test1"))
 
 	if err!= nil {
 		panic(err)
