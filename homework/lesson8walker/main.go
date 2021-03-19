@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
+	"syscall"
+	"time"
 )
 
 const count = 1000
@@ -132,7 +134,12 @@ func resultWorker(mm map[string]*paths, clear bool) (toRemove []string) {
 		if len(*val) > 1 {
 			fmt.Printf("# number of duplicates - %d, see the list below:\n", len(*val))
 			sort.Slice(*val, func(i, j int) bool {  // сортируем по короткому пути
-				return len((*val)[i]) < len((*val)[j])
+				f1,_ := os.Stat((*val)[i]); f2,_:=os.Stat((*val)[j])
+				ctf1 := f1.Sys().(*syscall.Stat_t); ctf2 := f2.Sys().(*syscall.Stat_t)
+				fmt.Printf("f1 %s - %s - %d\n", (*val)[i],timespecToTime(ctf1.Ctimespec), timespecToTime(ctf1.Ctimespec).Unix());
+				fmt.Printf("f2 %s - %s - %d\n", (*val)[j],timespecToTime(ctf2.Ctimespec), timespecToTime(ctf2.Ctimespec).Unix())
+				return timespecToTime(ctf1.Ctimespec).Unix() < timespecToTime(ctf2.Ctimespec).Unix()
+				//return len((*val)[i]) < len((*val)[j])
 			})
 			fmt.Printf("\t%s\n", (*val)[0])
 			for _, file := range (*val)[1:] {
@@ -167,4 +174,8 @@ func removeDuplicates(files []string) {
 		}(file)
 	}
 	wg.Wait()
+}
+
+func timespecToTime(ts syscall.Timespec) time.Time {
+	return time.Unix(int64(ts.Sec), int64(ts.Nsec))
 }
