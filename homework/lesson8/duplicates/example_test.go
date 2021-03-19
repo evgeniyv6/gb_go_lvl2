@@ -1,19 +1,17 @@
-package main
+package duplicates
 
 import (
 	"flag"
 	"fmt"
-	"github.com/evgeniyv6/homework/lesson8/duplicates"
 	"log"
 	"os"
 	"path/filepath"
 )
-
 const count = 1000
 
-func main() {
+func Example() {
 	var (
-		ch = make(chan duplicates.FileStat, count)
+		ch = make(chan FileStat, count)
 		path string
 		clear bool
 	)
@@ -24,7 +22,7 @@ func main() {
 		_, err := fmt.Fprintf(os.Stderr, "Usage of %s: This program searches for duplicate files in a folder and subfolders " +
 			"and, if necessary, deletes them\n", filepath.Base(os.Args[0]))
 		if err != nil {
-			fmt.Println("error:", err)
+			log.Println("error:", err)
 		}
 		flag.PrintDefaults()
 	}
@@ -33,16 +31,15 @@ func main() {
 	flag.Parse()
 
 	if path == "" {
-		fmt.Println("U should specify destination folder")
-		os.Exit(1)
+		log.Fatalf("U should specify destination folder")
 	}
 
-	go duplicates.FindDuplicates(ch,path)
-	data := duplicates.MapResults(ch)
-	filesToRemove := duplicates.ResultWorker(data, clear)
+	go FindDuplicates(ch,path)
+	data := MapResults(ch)
+	filesToRemove := ResultWorker(data, clear)
 
 	if clear {
-		duplicates.RemoveDuplicates(filesToRemove)
+		RemoveDuplicates(filesToRemove)
 	}
 	fmt.Println("work complete.")
 }

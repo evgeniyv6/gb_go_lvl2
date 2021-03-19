@@ -1,10 +1,10 @@
-// Package duplicates searches and removes duplicate files
+// Package for duplicates searches and removes duplicate files (sorted by ctime)
 // Using WalkDir, introduced in Go 1.16,
 // which avoids calling os.Lstat on every visited file or directory.
 //
 // FindDuplicates(ch chan FileStat, path string)
-// MapResults(ch <-chan FileStat) map[string]*paths
-// ResultWorker(mm map[string]*paths, clear bool) (toRemove []string)
+// MapResults(ch <-chan FileStat) map[string]*Paths
+// ResultWorker(mm map[string]*Paths, clear bool) (toRemove []string)
 // RemoveDuplicates(files []string)
 
 package duplicates
@@ -18,9 +18,11 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
+	"syscall"
+	"time"
 )
 
-type paths []string
+type Paths []string
 
 type FileStat struct {
 	Hash []byte
@@ -61,7 +63,7 @@ func processFile(file string, info os.FileInfo, ch chan FileStat, wg *sync.WaitG
 	defer wg.Done()
 	f, err := os.Open(file)
 	if err != nil {
-		log.Printf("cannot open file", err)
+		log.Printf("cannot open file %s", err)
 		return
 	}
 	defer f.Close() // намеренно для простоты, для пром поправить!
@@ -78,16 +80,16 @@ func processFile(file string, info os.FileInfo, ch chan FileStat, wg *sync.WaitG
 		return
 	}
 
-	ch <- FileStat{hash.Sum([]byte("mock")),info.Size(), file}
+	ch <- FileStat{hash.Sum(nil),info.Size(), file}
 }
 
-func MapResults(ch <-chan FileStat) map[string]*paths {
-	mm := make(map[string]*paths)
+func MapResults(ch <-chan FileStat) map[string]*Paths {
+	mm := make(map[string]*Paths)
 	for msg := range ch {
 		key:= fmt.Sprintf("%x%x", msg.Size, msg.Hash)
 		val, ok := mm[key]
 		if !ok {
-			val = &paths{}
+			val = &Paths{}
 			mm[key] = val
 		}
 		*val = append((*val), msg.Path)
@@ -95,12 +97,23 @@ func MapResults(ch <-chan FileStat) map[string]*paths {
 	return mm
 }
 
-func ResultWorker(mm map[string]*paths, clear bool) (toRemove []string) {
+func ResultWorker(mm map[string]*Paths, clear bool) (toRemove []string) {
 	for _, val := range mm {
 		if len(*val) > 1 {
 			fmt.Printf("# number of duplicates - %d, see the list below:\n", len(*val))
-			sort.Slice(*val, func(i, j int) bool {  // сортируем по короткому пути
-				return len((*val)[i]) < len((*val)[j])
+			sort.Slice(*val, func(i, j int) bool {  // сортируем по ctime
+				f1, err := os.Stat((*val)[i])
+				if err != nil {
+					fmt.Printf("cannot get file stat %s. Skip.\n",(*val)[i])
+				}
+				f2, err :=os.Stat((*val)[j])
+				if err != nil {
+					fmt.Printf("cannot get file stat %s. Skip.\n",(*val)[j])
+				}
+				ctimef1 := f1.Sys().(*syscall.Stat_t).Ctimespec; ctimef2 := f2.Sys().(*syscall.Stat_t).Ctimespec
+				return timespecToTime(ctimef1).Unix() < timespecToTime(ctimef2).Unix()
+				// return len((*val)[i]) < len((*val)[j]) // либо сортируем по короткому пути, в зависимости от ТЗ,
+				// либо добавить признак выбора сортировки для пользователя - TBD
 			})
 			fmt.Printf("\t%s\n", (*val)[0])
 			for _, file := range (*val)[1:] {
@@ -116,7 +129,7 @@ func ResultWorker(mm map[string]*paths, clear bool) (toRemove []string) {
 
 func RemoveDuplicates(files []string) {
 	if len(files) > 1 {
-		fmt.Println("\nclear flag was set to true, duplicates will be removed.\n")
+		fmt.Printf("\nclear flag was set to true, duplicates will be removed.\n")
 	}
 	wg := sync.WaitGroup{}
 	var mu sync.Mutex
@@ -135,4 +148,8 @@ func RemoveDuplicates(files []string) {
 		}(file)
 	}
 	wg.Wait()
+}
+
+func timespecToTime(ts syscall.Timespec) time.Time {
+	return time.Unix((ts.Sec), (ts.Nsec))
 }
