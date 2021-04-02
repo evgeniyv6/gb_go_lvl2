@@ -85,8 +85,9 @@ func processFile(file string, info os.FileInfo, ch chan FileStat, wg *sync.WaitG
 
 func MapResults(ch <-chan FileStat) map[string]*Paths {
 	mm := make(map[string]*Paths)
+	format := fmt.Sprintf("%%016X:%%%dX", crc32.Size*2) // == "%016X:%40X"
 	for msg := range ch {
-		key:= fmt.Sprintf("%x%x", msg.Size, msg.Hash)
+		key:= fmt.Sprintf(format, msg.Size, msg.Hash)
 		val, ok := mm[key]
 		if !ok {
 			val = &Paths{}
