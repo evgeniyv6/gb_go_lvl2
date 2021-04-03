@@ -1,6 +1,13 @@
+github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/evgeniyv6/gbyevgenpkg v1.0.1 h1:fN8DSvESg4dSFYD+nORqDh8tctmddNImC2776Jm48wc=
 github.com/evgeniyv6/gbyevgenpkg v1.0.1/go.mod h1:BR5M8eLXXKmREeSA/OoQorhIaNA62uHgYbhhJY7yWcI=
 github.com/evgeniyv6/gbyevgenpkg/v2 v2.0.1 h1:Sf5BMWdrUTmdf9l0KSb4M9J//0gTOcSDEJ10Z0eAGwI=
 github.com/evgeniyv6/gbyevgenpkg/v2 v2.0.1/go.mod h1:5T80h2vI/USPh+Joc0ay9kQUAOs2iijqGs9Z2y2FvOk=
 github.com/jcmturner/gokrb5 v8.4.2+incompatible h1:MQW70Fbazv31g6URAXCjO2bGenIL0wVt3wqcpc0EjHI=
 github.com/jcmturner/gokrb5 v8.4.2+incompatible/go.mod h1:0Q5eFyVvYsEsZ8xl1A/jUqhXvxUp/X9ELrJm+zieq5E=
+github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/sirupsen/logrus v1.8.1 h1:dJKuHgqk1NNQlqoA6BTlM1Wf9DOH3NBjQyu0h9+AZZE=
+github.com/sirupsen/logrus v1.8.1/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=
+github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
+golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 h1:YyJpGZS1sBuBCzLAR1VEpK193GlqGZbnPFnPV/5Rsb4=
+golang.org/x/sys v0.0.0-20191026070338-33540a1f6037/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=

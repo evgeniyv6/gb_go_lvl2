@@ -12,6 +12,7 @@ const count = 1000
 func Example() {
 	var (
 		ch = make(chan FileStat, count)
+		errCh = make(chan error)
 		path string
 		clear bool
 	)
@@ -34,12 +35,12 @@ func Example() {
 		log.Fatalf("U should specify destination folder")
 	}
 
-	go FindDuplicates(ch,path)
+	go FindDuplicates(ch,path, errCh)
 	data := MapResults(ch)
-	filesToRemove := ResultWorker(data, clear)
+	filesToRemove := ResultWorker(data, clear, errCh)
 
 	if clear {
-		RemoveDuplicates(filesToRemove)
+		RemoveDuplicates(filesToRemove, errCh)
 	}
 	fmt.Println("work complete.")
 }
