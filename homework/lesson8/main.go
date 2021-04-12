@@ -37,7 +37,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	go duplicates.FindDuplicates(ch,path)
+	go duplicates.FindDuplicates(ch,path, duplicates.FS)
 	data := duplicates.MapResults(ch)
 	filesToRemove := duplicates.ResultWorker(data, clear)
 
