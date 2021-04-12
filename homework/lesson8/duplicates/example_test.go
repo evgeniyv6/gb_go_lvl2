@@ -34,7 +34,7 @@ func Example() {
 		log.Fatalf("U should specify destination folder")
 	}
 
-	go FindDuplicates(ch,path)
+	go FindDuplicates(ch,path, FS)
 	data := MapResults(ch)
 	filesToRemove := ResultWorker(data, clear)
 

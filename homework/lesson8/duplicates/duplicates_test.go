@@ -1,129 +1,62 @@
 package duplicates
 
 import (
-	"fmt"
-	"hash/crc32"
-	"io"
+	"github.com/spf13/afero"
+	"github.com/stretchr/testify/assert"
 	"os"
-	"reflect"
-	"sort"
-	"syscall"
 	"testing"
-	"time"
 )
 
-const testFolder = "/tmp/duplicatesGotest/"
+var (
+	testFolders    = "./testfolder/inner/"
+	file1      = "./testfolder/f1"
+	file2      = "./testfolder/f2"
+	innerFile = "./testfolder/inner/f3"
+	NEWFS  = afero.NewOsFs() // from afero ref.: In the case of OsFs it
+							// will still use the same underlying filesystem
+							// but will reduce the ability to drop in other filesystems as desired.
+	AFS  = &afero.Afero{Fs: NEWFS}
+)
+
+func init() {
+	// create test files and directories
+	AFS.MkdirAll(testFolders, 0755)
+	afero.WriteFile(AFS, file1, []byte("test file"), 0755)
+	afero.WriteFile(AFS, file2, []byte("test file"), 0755)
+	afero.WriteFile(AFS, innerFile, []byte("test file"), 0755)
+}
+
+var fsTest fileSystem = osFSMock{}
+type osFSMock struct{}
+func (osFSMock) Open(name string) (ifile, error) {
+	return AFS.Open(name)
+}
+func (osFSMock) Stat(name string) (os.FileInfo, error) {
+	return AFS.Stat(name)
+}
 
 // go test -v .
 func TestFindDuplicates(t *testing.T) {
-	mm := prepareDataMap()
+	test := struct {
+		in string
+		want map[string][]string
+	}{
+		"./testfolder/",
+		map[string][]string{"0000000000000009:F2646BC1":
+			{"testfolder/f2","testfolder/inner/f3","testfolder/f1"}},
+	}
 	ch := make(chan FileStat, 10)
-	go FindDuplicates(ch,testFolder)
-	data := MapResults(ch)
 
-	fmt.Println("Test data:")
-	_ = ResultWorker(mm, false)
-	fmt.Println("Func data:")
+	go FindDuplicates(ch,test.in, fsTest)
+	data := MapResults(ch)
 	_ = ResultWorker(data, false)
 
-	mm1 :=make(map[string]Paths, len(mm))
-	mm2 :=make(map[string]Paths, len(mm))
-
-	for k, v := range mm {
-		sort.Slice(*v, func(i, j int) bool {  // сортируем по ctime
-			f1, err := os.Stat((*v)[i])
-			if err != nil {
-				fmt.Printf("cannot get file stat %s. Skip.\n",(*v)[i])
-			}
-			f2, err :=os.Stat((*v)[j])
-			if err != nil {
-				fmt.Printf("cannot get file stat %s. Skip.\n",(*v)[j])
-			}
-			ctimef1 := f1.Sys().(*syscall.Stat_t).Ctimespec; ctimef2 := f2.Sys().(*syscall.Stat_t).Ctimespec
-			return timespecToTime(ctimef1).Unix() < timespecToTime(ctimef2).Unix()
-		})
-		mm1[k]=*v
-	}
-	for k, v := range data {
-		mm2[k]=*v
+	mm := make(map[string][]string, len(data))
+	for k,v:=range data {
+		mm[k] = *v
 	}
 
-	eq := reflect.DeepEqual(mm1, mm2)
-
-	if eq {
-		fmt.Println(mm1)
-		fmt.Println(mm2)
-		fmt.Println("Maps're equal.")
-	} else {
-		t.Errorf("Test failed maps not equal 1 - %v\n 2 - %v\n", mm1,mm2)
-	}
-
-	err := os.RemoveAll(testFolder)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func prepareDataMap() map[string]*Paths {
-	err := os.MkdirAll(testFolder,0755)
-	if err != nil {
-		panic(err)
-	}
-	err = os.MkdirAll(testFolder+"inner",0755)
-	if err != nil {
-		panic(err)
-	}
-
-	var files = []string{testFolder + "file1.txt",
-		testFolder + "file2.txt", testFolder + "inner/file3.txt"}
-
-	for _, f := range files {
-		fileCreator(f,"duplicate")
-		time.Sleep(10*time.Millisecond)
-	}
-	fileCreator(files[len(files)-1], "non duplicate")
-
-	mm := make(map[string]*Paths)
-
-	for _, f := range files {
-		hash := crc32.NewIEEE()
-		fo, err := os.Open(f)
-		if err != nil {
-			panic(err)
-		}
-		_, err = io.Copy(hash, fo)
-		if err != nil {
-			panic(err)
-		}
-		fi, err := os.Stat(f)
-		if err != nil {
-			panic(err)
-		}
-		key := fmt.Sprintf("%x%x",fi.Size(), hash.Sum(nil))
-
-		val, ok := mm[key]
-		if !ok {
-			val = &Paths{}
-			mm[key] = val
-		}
-
-		*val = append((*val), f)
-
-	}
-	return mm
-}
-
-func fileCreator(path string, text string) {
-	f1, err := os.Create(path)
-	if err != nil {
-		panic(err)
-	}
-	_, err = f1.WriteString(text)
-	if err != nil {
-		panic(err)
-	}
-	err = f1.Close()
-	if err != nil {
-		panic(err)
+	for k, _ := range test.want {
+		assert.ElementsMatch(t, test.want[k], mm[k])
 	}
 }

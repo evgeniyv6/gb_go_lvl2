@@ -22,6 +22,33 @@ import (
 	"time"
 )
 
+
+// ### go best practices: exercise 3
+var FS fileSystem = osFS{}
+
+type fileSystem interface {
+	Open(name string) (ifile, error)
+	Stat(name string) (os.FileInfo, error)
+}
+
+type ifile interface {
+	io.Closer
+	io.Reader
+	io.ReaderAt
+	io.Seeker
+	Stat() (os.FileInfo, error)
+}
+
+type osFS struct{}
+
+func (osFS) Open(name string) (ifile, error) {
+	return os.Open(name)
+}
+func (osFS) Stat(name string) (os.FileInfo, error) {
+	return os.Stat(name)
+}
+// ###
+
 type Paths []string
 
 type FileStat struct {
@@ -30,9 +57,9 @@ type FileStat struct {
 	Path string
 }
 
-func FindDuplicates(ch chan FileStat, path string) {
+func FindDuplicates(ch chan FileStat, path string, fs fileSystem) {
 	wg := &sync.WaitGroup{}
-	err := filepath.WalkDir(path, customWalkDirFunc(ch, wg))
+	err := filepath.WalkDir(path, customWalkDirFunc(ch, wg, fs))
 	if err != nil {
 		log.Println("error while walk the directory ", err)
 	}
@@ -40,7 +67,7 @@ func FindDuplicates(ch chan FileStat, path string) {
 	close(ch)
 }
 
-func customWalkDirFunc(ch chan FileStat, wg *sync.WaitGroup) func(string, os.DirEntry, error) error {
+func customWalkDirFunc(ch chan FileStat, wg *sync.WaitGroup, fs fileSystem) func(string, os.DirEntry, error) error {
 	return func(path string, entry os.DirEntry, err error) error {
 		info, ierr := entry.Info()
 		if ierr != nil {
@@ -53,15 +80,15 @@ func customWalkDirFunc(ch chan FileStat, wg *sync.WaitGroup) func(string, os.Dir
 		// т.о. если нет такого бита - то это файл, что нам и нужно
 		if err == nil && info.Size() > 0 && (entry.Type()&os.ModeType == 0) {
 			wg.Add(1)
-			go processFile(path, info, ch, wg)
+			go processFile(fs, path, ch, wg)
 		}
 		return nil // не возвращаем ошибку, возвращаем nil
 	}
 }
 
-func processFile(file string, info os.FileInfo, ch chan FileStat, wg *sync.WaitGroup) {
+func processFile(fs fileSystem, file string, ch chan FileStat, wg *sync.WaitGroup) {
 	defer wg.Done()
-	f, err := os.Open(file)
+	f, err := fs.Open(file)
 	if err != nil {
 		log.Printf("cannot open file %s", err)
 		return
@@ -71,7 +98,8 @@ func processFile(file string, info os.FileInfo, ch chan FileStat, wg *sync.WaitG
 	hash := crc32.NewIEEE()
 	size, err := io.Copy(hash, f)
 
-	if size != info.Size() {
+	ss,_:= fs.Stat(file)
+	if size != ss.Size() {
 		log.Println("cannot read whole file", file)
 		return
 	}
@@ -80,7 +108,7 @@ func processFile(file string, info os.FileInfo, ch chan FileStat, wg *sync.WaitG
 		return
 	}
 
-	ch <- FileStat{hash.Sum(nil), info.Size(), file}
+	ch <- FileStat{hash.Sum(nil), ss.Size(), file}
 }
 
 func MapResults(ch <-chan FileStat) map[string]*Paths {
