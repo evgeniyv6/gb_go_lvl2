@@ -10,10 +10,11 @@
 package duplicates
 
 import (
+	"errors"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"hash/crc32"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -30,21 +31,22 @@ type FileStat struct {
 	Path string
 }
 
-func FindDuplicates(ch chan FileStat, path string) {
+func FindDuplicates(ch chan FileStat, path string, errCh chan error) {
 	wg := &sync.WaitGroup{}
-	err := filepath.WalkDir(path, customWalkDirFunc(ch, wg))
+	err := filepath.WalkDir(path, customWalkDirFunc(ch, wg, errCh))
+	err = errors.New("HELLO FROM FindDuplicates ERROR") // CHANGEME <for DEMO>
 	if err != nil {
-		log.Println("error while walk the directory ", err)
+		errCh <- errors.New(fmt.Sprintf("error while walk the directory: %v", err))
 	}
 	wg.Wait()
 	close(ch)
 }
 
-func customWalkDirFunc(ch chan FileStat, wg *sync.WaitGroup) func(string, os.DirEntry, error) error {
+func customWalkDirFunc(ch chan FileStat, wg *sync.WaitGroup, errCh chan error) func(string, os.DirEntry, error) error {
 	return func(path string, entry os.DirEntry, err error) error {
 		info, ierr := entry.Info()
 		if ierr != nil {
-			log.Printf("error while getting file info: %s\n", err)
+			errCh <- errors.New(fmt.Sprintf("error while getting file info: %v\n", err))
 		}
 		// 1) т.к. ищем дубликаты не по имени, а по содержанию,
 		// то ищем только файлы ненулевого размера (файлы 0 size по умолчанию идентичные -> пропускаем)
@@ -53,17 +55,17 @@ func customWalkDirFunc(ch chan FileStat, wg *sync.WaitGroup) func(string, os.Dir
 		// т.о. если нет такого бита - то это файл, что нам и нужно
 		if err == nil && info.Size() > 0 && (entry.Type()&os.ModeType == 0) {
 			wg.Add(1)
-			go processFile(path, info, ch, wg)
+			go processFile(path, info, ch, wg, errCh)
 		}
 		return nil // не возвращаем ошибку, возвращаем nil
 	}
 }
 
-func processFile(file string, info os.FileInfo, ch chan FileStat, wg *sync.WaitGroup) {
+func processFile(file string, info os.FileInfo, ch chan FileStat, wg *sync.WaitGroup, errCh chan error) {
 	defer wg.Done()
 	f, err := os.Open(file)
 	if err != nil {
-		log.Printf("cannot open file %s", err)
+		errCh <- errors.New(fmt.Sprintf("cannot open file %v", err))
 		return
 	}
 	defer f.Close() // намеренно для простоты, для пром поправить!
@@ -72,11 +74,11 @@ func processFile(file string, info os.FileInfo, ch chan FileStat, wg *sync.WaitG
 	size, err := io.Copy(hash, f)
 
 	if size != info.Size() {
-		log.Println("cannot read whole file", file)
+		errCh <- errors.New(fmt.Sprintf("cannot read whole %s", file))
 		return
 	}
 	if err != nil {
-		log.Println(err)
+		errCh <- err
 		return
 	}
 
@@ -98,18 +100,18 @@ func MapResults(ch <-chan FileStat) map[string]*Paths {
 	return mm
 }
 
-func ResultWorker(mm map[string]*Paths, clear bool) (toRemove []string) {
+func ResultWorker(mm map[string]*Paths, clear bool, errCh chan error) (toRemove []string) {
 	for _, val := range mm {
 		if len(*val) > 1 {
-			fmt.Printf("# number of duplicates - %d, see the list below:\n", len(*val))
+			logrus.Infof("# number of duplicates - %d, see the list below:\n", len(*val))
 			sort.Slice(*val, func(i, j int) bool { // сортируем по ctime
 				f1, err := os.Stat((*val)[i])
 				if err != nil {
-					fmt.Printf("cannot get file stat %s. Skip.\n", (*val)[i])
+					errCh <- errors.New(fmt.Sprintf("cannot get file stat %s. Skip.", (*val)[i]))
 				}
 				f2, err := os.Stat((*val)[j])
 				if err != nil {
-					fmt.Printf("cannot get file stat %s. Skip.\n", (*val)[j])
+					errCh <- errors.New(fmt.Sprintf("cannot get file stat %s. Skip.\n", (*val)[j]))
 				}
 				ctimef1 := f1.Sys().(*syscall.Stat_t).Ctimespec
 				ctimef2 := f2.Sys().(*syscall.Stat_t).Ctimespec
@@ -117,9 +119,9 @@ func ResultWorker(mm map[string]*Paths, clear bool) (toRemove []string) {
 				// return len((*val)[i]) < len((*val)[j]) // либо сортируем по короткому пути, в зависимости от ТЗ,
 				// либо добавить признак выбора сортировки для пользователя - TBD
 			})
-			fmt.Printf("\t%s\n", (*val)[0])
+			logrus.Infof("\t%s\n", (*val)[0])
 			for _, file := range (*val)[1:] {
-				fmt.Printf("\t%s\n", file)
+				logrus.Infof("\t%s\n", file)
 				if clear {
 					toRemove = append(toRemove, file)
 				}
@@ -129,9 +131,9 @@ func ResultWorker(mm map[string]*Paths, clear bool) (toRemove []string) {
 	return
 }
 
-func RemoveDuplicates(files []string) {
+func RemoveDuplicates(files []string, errCh chan error) {
 	if len(files) > 1 {
-		fmt.Printf("\nclear flag was set to true, duplicates will be removed.\n")
+		logrus.Infof("\nclear flag was set to true, duplicates will be removed.\n")
 	}
 	wg := sync.WaitGroup{}
 	var mu sync.Mutex
@@ -142,9 +144,9 @@ func RemoveDuplicates(files []string) {
 			mu.Lock()
 			err := os.Remove(f)
 			if err != nil {
-				fmt.Printf("Cannot remove file %s. Skip.\n", f)
+				errCh <- errors.New(fmt.Sprintf("Cannot remove file %s. Skip.\n", f))
 			} else {
-				fmt.Printf("File deleted: %s.\n", f)
+				logrus.Infof("File deleted: %s.\n", f)
 			}
 			mu.Unlock()
 		}(file)

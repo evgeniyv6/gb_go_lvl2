@@ -7,39 +7,41 @@ import (
 	"os"
 	"path/filepath"
 )
+
 const count = 1000
 
 func Example() {
 	var (
-		ch = make(chan FileStat, count)
-		path string
+		ch    = make(chan FileStat, count)
+		errCh = make(chan error)
+		path  string
 		clear bool
 	)
 
 	log.SetFlags(log.LUTC | log.Lmicroseconds | log.Lshortfile | log.Ldate)
 
 	flag.Usage = func() {
-		_, err := fmt.Fprintf(os.Stderr, "Usage of %s: This program searches for duplicate files in a folder and subfolders " +
+		_, err := fmt.Fprintf(os.Stderr, "Usage of %s: This program searches for duplicate files in a folder and subfolders "+
 			"and, if necessary, deletes them\n", filepath.Base(os.Args[0]))
 		if err != nil {
 			log.Println("error:", err)
 		}
 		flag.PrintDefaults()
 	}
-	flag.StringVar(&path,"folder", "", "required parameter. path to a folder.")
-	flag.BoolVar(&clear,"clear", false,"bool parameter, default = false. if set to true - duplicates will be removed.")
+	flag.StringVar(&path, "folder", "", "required parameter. path to a folder.")
+	flag.BoolVar(&clear, "clear", false, "bool parameter, default = false. if set to true - duplicates will be removed.")
 	flag.Parse()
 
 	if path == "" {
 		log.Fatalf("U should specify destination folder")
 	}
 
-	go FindDuplicates(ch,path)
+	go FindDuplicates(ch, path, errCh)
 	data := MapResults(ch)
-	filesToRemove := ResultWorker(data, clear)
+	filesToRemove := ResultWorker(data, clear, errCh)
 
 	if clear {
-		RemoveDuplicates(filesToRemove)
+		RemoveDuplicates(filesToRemove, errCh)
 	}
 	fmt.Println("work complete.")
 }
